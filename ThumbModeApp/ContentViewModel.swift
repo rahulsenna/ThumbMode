@@ -101,6 +101,26 @@ func sendOptionDeleteKeyEvent()
 }
 
 
+nonisolated(unsafe) private var lastTriggeredTime: Date = Date()
+private let minimumInterval: TimeInterval = 0.8 // second
+nonisolated(unsafe) private let sound = NSSound(named: NSSound.Name("Basso"));
+// Function to trigger triple strong haptic feedback
+func triggerTripleStrongHapticFeedback()
+{
+    let now = Date()
+    if now.timeIntervalSince(lastTriggeredTime) < minimumInterval 
+    {
+        return
+    }
+    lastTriggeredTime = now
+
+    DispatchQueue.global(qos: .background).async
+    {
+        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+    }
+}
+
+
 
 @MainActor
 final class ContentViewModel: ObservableObject {
@@ -146,25 +166,32 @@ final class ContentViewModel: ObservableObject {
                     self?.LeftThumb1Touch = false
                     self?.RightThumb1Touch = false
 
-                    for data in touchData
+                    for (idx, data) in touchData.enumerated()
+//                    for data in touchData
                     {
-//                       print(data.position.x, data.position.y)
+//                        print(idx, data.position.x, data.position.y)
 
-                        if (data.position.x > 0.2 && data.position.x < 0.8 && data.position.y > 0.82)
+                        if (data.position.x > 0.30 && data.position.x < 0.5  && data.position.y > 0.70)
                         {
-                            // NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: performanceTime)
-                                                    
+
+                           
                             self?.isThumbing = true
-                            if (data.position.x < 0.4)
+                            if (data.position.x < 0.5)
                             {
+
                                 self?.LeftThumbTouch = true
                                 if (self?.LeftThumb == false)
                                 {
                                     self?.LeftThumb = true;
-                                    run_bash(command: left_thumb_on)
+                                    run_bash(command: left_thumb_on);
+                                    // sound?.loops = true
+                                    // sound?.play()
+
                                 }
+//                                triggerTripleStrongHapticFeedback()
+
                             }
-                            if (data.position.x > 0.4)
+                            if (data.position.x > 0.5)
                             {
                                 self?.RightThumbTouch = true
                                 
@@ -172,8 +199,11 @@ final class ContentViewModel: ObservableObject {
                                 {
                                     self?.RightThumb = true;
                                     run_bash(command: right_thumb_on)
+
                                 }
                             }
+                            
+
                         }
                         
                     }
@@ -182,6 +212,7 @@ final class ContentViewModel: ObservableObject {
                     {
                         self?.LeftThumb = false
                         run_bash(command: left_thumb_off)
+                        // sound?.stop()
                     }
 
                     if (self?.RightThumb == true && self?.RightThumbTouch == false)
